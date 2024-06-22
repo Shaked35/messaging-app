@@ -1,0 +1,416 @@
+openapi: 3.0.1
+info:
+  title: Messaging Backend API
+  description: This is the API for a cloud-based messaging backend built with AWS services like API Gateway, Lambda, DynamoDB, and Secrets Manager.
+  version: 1.0.0
+servers:
+  - url: https://{apiId}.execute-api.{region}.amazonaws.com/prod
+    variables:
+      apiId:
+        default: your-api-id
+      region:
+        default: us-east-1
+components:
+  securitySchemes:
+    cognito_auth:
+      type: apiKey
+      name: Authorization
+      in: header
+  schemas:
+    RegisterUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+      required:
+        - username
+        - password
+        - email
+    AuthenticateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+    SendMessageRequest:
+      type: object
+      properties:
+        fromUserId:
+          type: string
+        toUserId:
+          type: string
+        message:
+          type: string
+      required:
+        - fromUserId
+        - toUserId
+        - message
+    BlockUserRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        blockedUserId:
+          type: string
+      required:
+        - userId
+        - blockedUserId
+    CreateGroupRequest:
+      type: object
+      properties:
+        groupName:
+          type: string
+      required:
+        - groupName
+    AddUserToGroupRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+    RemoveUserFromGroupRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+    SendGroupMessageRequest:
+      type: object
+      properties:
+        fromUserId:
+          type: string
+        message:
+          type: string
+      required:
+        - fromUserId
+        - message
+paths:
+  /users:
+    post:
+      summary: Register a new user
+      operationId: registerUser
+      requestBody:
+        description: User registration request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '200':
+          description: Successful registration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  userId:
+                    type: string
+        '400':
+          description: Error in registration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /users/authenticate:
+    post:
+      summary: Authenticate user and get token
+      operationId: authenticateUser
+      requestBody:
+        description: User authentication request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticateUserRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Error in authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /messages:
+    post:
+      summary: Send a message to a user
+      operationId: sendMessage
+      security:
+        - cognito_auth: []
+      requestBody:
+        description: Send message request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messageId:
+                    type: string
+        '403':
+          description: User is blocked from sending messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '400':
+          description: Error in sending message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /users/block:
+    post:
+      summary: Block a user
+      operationId: blockUser
+      security:
+        - cognito_auth: []
+      requestBody:
+        description: Block user request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockUserRequest'
+      responses:
+        '200':
+          description: User blocked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Error in blocking user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /groups:
+    post:
+      summary: Create a group
+      operationId: createGroup
+      security:
+        - cognito_auth: []
+      requestBody:
+        description: Create group request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '200':
+          description: Group created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groupId:
+                    type: string
+        '400':
+          description: Error in creating group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /groups/{groupId}/users:
+    post:
+      summary: Add a user to a group
+      operationId: addUserToGroup
+      security:
+        - cognito_auth: []
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Add user to group request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddUserToGroupRequest'
+      responses:
+        '200':
+          description: User added to group successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Error in adding user to group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      summary: Remove a user from a group
+      operationId: removeUserFromGroup
+      security:
+        - cognito_auth: []
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Remove user from group request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveUserFromGroupRequest'
+      responses:
+        '200':
+          description: User removed from group successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Error in removing user from group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /groups/{groupId}/messages:
+    post:
+      summary: Send a message to a group
+      operationId: sendGroupMessage
+      security:
+        - cognito_auth: []
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Send group message request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendGroupMessageRequest'
+      responses:
+        '200':
+          description: Message sent to group successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Error in sending message to group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /messages/{userId}:
+    get:
+      summary: Check messages for a user
+      operationId: checkMessages
+      security:
+        - cognito_auth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    MessageId:
+                      type: string
+                    FromUserId:
+                      type: string
+                    Message:
+                      type: string
+                    SentAt:
+                      type: string
+        '400':
+          description: Error in checking messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
