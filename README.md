@@ -233,7 +233,3 @@ pytest tests/
 
 - Cognito: Manages user authentication and authorization.
 - Secrets Manager: Securely stores and retrieves sensitive information such as Cognito client ID.
-
-## License
-This project is licensed under the MIT License.
-# messaging-app
